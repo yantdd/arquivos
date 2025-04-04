@@ -42,7 +42,7 @@ REG_DADOS *get_registro(FILE *bin) {
 
     if (fread(&reg_dados->removido, sizeof(char), 1, bin) != 1) {
         free(reg_dados);
-        return NULL;  // End of file
+        return NULL;  // EOF
     }
 
     fread(&reg_dados->tamanhoRegistro, sizeof(int), 1, bin);
