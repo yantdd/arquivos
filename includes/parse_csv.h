@@ -12,12 +12,13 @@
 typedef struct linha_csv {
     int idAttack;
     int year;
-    float  financialLoss;
-    char   country[50];
-    char   attackType[50];
-    char   targetIndustry[50];
-    char   defenseMechanism[50];
+    float financialLoss;
+    char country[50];
+    char attackType[50];
+    char targetIndustry[50];
+    char defenseMechanism[50];
 } LINHA_CSV;
+
 
 LINHA_CSV *le_linha_csv(FILE *csv);
 

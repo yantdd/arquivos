@@ -8,7 +8,7 @@
 
 #define LIXO_STRING "$"
 #define LIXO_INT -1
-#define LIXO_DOUBLE -1.0
+#define LIXO_FLOAT -1.0
 #define DELIM_CAMPO '|'
 
 typedef struct reg_header {
@@ -46,10 +46,7 @@ typedef struct reg_dados {
 
 
 
-
-
-
-REG_HEADER *inicializa_header() {
+REG_HEADER *inicializa_header_registro() {
     REG_HEADER *header = (REG_HEADER *)calloc(1, sizeof(REG_HEADER));
     if (header == NULL) {
         fprintf(stderr, "Erro ao alocar memória para o cabeçalho.\n");
@@ -79,7 +76,7 @@ REG_HEADER *inicializa_header() {
 
 
 bool escreve_header_no_bin(FILE *bin) {
-    REG_HEADER *header = inicializa_header();
+    REG_HEADER *header = inicializa_header_registro();
     if (header == NULL) {
         return false;
     }
@@ -108,29 +105,24 @@ bool escreve_header_no_bin(FILE *bin) {
 
 
 
-int calcula_tamanho_reg(LINHA_CSV *linha) {
+int calcula_tamanho_registro(LINHA_CSV *linha) {
     int tamanho = 0;
     tamanho += sizeof(long long int); // Campo 'prox'
-    if (linha->idAttack != LIXO_INT) {
-        tamanho += sizeof(int);
+    tamanho += sizeof(int); // Campo 'idAttack'
+    tamanho += sizeof(int); // Campo 'year'
+    tamanho += sizeof(float); // Campo 'financialLoss'
+    
+    if (memcmp(linha->country, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        tamanho += strlen(linha->country) + 2; // +2 para o delimitador e keyword
     }
-    if (linha->year != LIXO_INT) {
-        tamanho += sizeof(int);
+    if (memcmp(linha->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        tamanho += strlen(linha->attackType) + 2; // +2 para o delimitador e keyword
     }
-    if (linha->financialLoss != LIXO_DOUBLE) {
-        tamanho += sizeof(double); // acho que tem um erro aqui, deveria ser float!!!!!!!!!
+    if (memcmp(linha->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        tamanho += strlen(linha->targetIndustry) + 2; // +2 para o delimitador e keyword
     }
-    if (strcmp(linha->country, LIXO_STRING) != 0) {
-        tamanho += strlen(linha->country) + 1; // +1 para o delimitador
-    }
-    if (strcmp(linha->attackType, LIXO_STRING) != 0) {
-        tamanho += strlen(linha->attackType) + 1; // +1 para o delimitador
-    }
-    if (strcmp(linha->targetIndustry, LIXO_STRING) != 0) {
-        tamanho += strlen(linha->targetIndustry) + 1; // +1 para o delimitador
-    }
-    if (strcmp(linha->defenseMechanism, LIXO_STRING) != 0) {
-        tamanho += strlen(linha->defenseMechanism) + 1; // +1 para o delimitador
+    if (memcmp(linha->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        tamanho += strlen(linha->defenseMechanism) + 2; // +2 para o delimitador e keyword
     }
     return tamanho;
 }
@@ -138,24 +130,22 @@ int calcula_tamanho_reg(LINHA_CSV *linha) {
 
 
 
-REG_DADOS *linha_csv_para_reg_bin(FILE *csv) {
+REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
     if (reg_dados == NULL) {
         fprintf(stderr, "Erro ao alocar memória para o registro de dados.\n");
         return NULL;
     }
 
-    
-    reg_dados->removido = '0';
-    reg_dados->prox = -1;
-    
     LINHA_CSV *linha = le_linha_csv(csv);
     if (linha == NULL) {
         free(reg_dados);
         return NULL;
     }
-
-    reg_dados->tamanhoRegistro = calcula_tamanho_reg(linha);
+    
+    reg_dados->removido = '0';
+    reg_dados->prox = -1;
+    reg_dados->tamanhoRegistro = calcula_tamanho_registro(linha);
     reg_dados->idAttack = linha->idAttack;
     reg_dados->year = linha->year;
     reg_dados->financialLoss = linha->financialLoss;
@@ -205,7 +195,7 @@ REG_DADOS *linha_csv_para_reg_bin(FILE *csv) {
 
 
 
-bool escreve_dados_no_bin(FILE *csv, FILE *bin) {
+bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
 
     escreve_header_no_bin(bin); // Escreve o cabeçalho no arquivo binário
     
@@ -213,7 +203,7 @@ bool escreve_dados_no_bin(FILE *csv, FILE *bin) {
     int nroRegArq = 0; // Inicializa um contador para armazenar o número de registros
     
     while (true) {
-        REG_DADOS *reg_dados = linha_csv_para_reg_bin(csv);
+        REG_DADOS *reg_dados = converte_linha_csv_para_registro_bin(csv);
         if (reg_dados == NULL) {
             break;
         }
@@ -221,40 +211,31 @@ bool escreve_dados_no_bin(FILE *csv, FILE *bin) {
         fwrite(&reg_dados->removido, sizeof(char), 1, bin);
         fwrite(&reg_dados->tamanhoRegistro, sizeof(int), 1, bin);
         fwrite(&reg_dados->prox, sizeof(long long int), 1, bin);
+        fwrite(&reg_dados->idAttack, sizeof(int), 1, bin);
+        fwrite(&reg_dados->year, sizeof(int), 1, bin);
+        fwrite(&reg_dados->financialLoss, sizeof(float), 1, bin);
         
 
-        if (reg_dados->idAttack != LIXO_INT) {
-            fwrite(&reg_dados->idAttack, sizeof(int), 1, bin);
-        }
-
-        if (reg_dados->year != LIXO_INT) {
-            fwrite(&reg_dados->year, sizeof(int), 1, bin);
-        }
-
-        if (reg_dados->financialLoss != LIXO_DOUBLE) {
-            fwrite(&reg_dados->financialLoss, sizeof(float), 1, bin);
-        }
-
         
-        if (strcmp(reg_dados->country, LIXO_STRING) != 0) {
+        if (memcmp(reg_dados->country, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
             fputc('1', bin); // Codigo do campo country
             fwrite(reg_dados->country, strlen(reg_dados->country), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
-        if (strcmp(reg_dados->attackType, LIXO_STRING) != 0) {
+        if (memcmp(reg_dados->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
             fputc('2', bin); // Codigo do campo attaclkType
             fwrite(reg_dados->attackType, strlen(reg_dados->attackType), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
-        if (strcmp(reg_dados->targetIndustry, LIXO_STRING) != 0) {
+        if (memcmp(reg_dados->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
             fputc('3', bin); // Codigo do campo targetIndustry
             fwrite(reg_dados->targetIndustry, strlen(reg_dados->targetIndustry), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
-        if (strcmp(reg_dados->defenseMechanism, LIXO_STRING) != 0) {
+        if (memcmp(reg_dados->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
             fputc('4', bin); // Codigo do campo defenseMechanism
             fwrite(reg_dados->defenseMechanism, strlen(reg_dados->defenseMechanism), 1, bin);
             fputc(DELIM_CAMPO, bin);
@@ -288,6 +269,7 @@ bool escreve_dados_no_bin(FILE *csv, FILE *bin) {
     return true;
 }
 
+// Função foi fornecida
 void binarioNaTela(char *nomeArquivoBinario) {
     unsigned long i, cs;
     unsigned char *mb;
@@ -312,26 +294,26 @@ void binarioNaTela(char *nomeArquivoBinario) {
     fclose(fs);
 }
 
-int main() {
-    FILE *csv = fopen("ataque1.csv", "r");
-    if (csv == NULL) {
-        fprintf(stderr, "Erro ao abrir o arquivo CSV.\n");
-        return 1;
-    }
+// int main() {
+//     FILE *csv = fopen("ataque2.csv", "r");
+//     if (csv == NULL) {
+//         fprintf(stderr, "Erro ao abrir o arquivo CSV.\n");
+//         return 1;
+//     }
 
-    FILE *bin = fopen("out.bin", "wb");
-    if (bin == NULL) {
-        fprintf(stderr, "Erro ao abrir o arquivo binário.\n");
-        fclose(csv);
-        return 1;
-    }
+//     FILE *bin = fopen("out.bin", "wb");
+//     if (bin == NULL) {
+//         fprintf(stderr, "Erro ao abrir o arquivo binário.\n");
+//         fclose(csv);
+//         return 1;
+//     }
 
-    escreve_dados_no_bin(csv, bin);
+//     escreve_registros_no_bin(csv, bin);
 
-    fclose(csv);
-    fclose(bin);
+//     fclose(csv);
+//     fclose(bin);
 
-    binarioNaTela("out.bin");
+//     binarioNaTela("out.bin");
 
-    return 0;
-}
+//     return 0;
+// }
