@@ -49,7 +49,7 @@ typedef struct reg_dados {
 REG_HEADER *inicializa_header_registro() {
     REG_HEADER *header = (REG_HEADER *)calloc(1, sizeof(REG_HEADER));
     if (header == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o cabeçalho.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
@@ -73,14 +73,12 @@ REG_HEADER *inicializa_header_registro() {
 }
 
 
-
-
 bool escreve_header_no_bin(FILE *bin) {
     REG_HEADER *header = inicializa_header_registro();
     if (header == NULL) {
         return false;
     }
-    //fwrite(header, sizeof(REG_HEADER), 1, bin);
+
     fwrite(&header->status, sizeof(char), 1, bin);
     fwrite(&header->topo, sizeof(long long int), 1, bin);
     fwrite(&header->proxByteOffset, sizeof(long long int), 1, bin);
@@ -100,9 +98,6 @@ bool escreve_header_no_bin(FILE *bin) {
     free(header);
     return true;
 }
-
-
-
 
 
 int calcula_tamanho_registro(LINHA_CSV *linha) {
@@ -128,12 +123,10 @@ int calcula_tamanho_registro(LINHA_CSV *linha) {
 }
 
 
-
-
 REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
     if (reg_dados == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o registro de dados.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
@@ -149,46 +142,49 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     reg_dados->idAttack = linha->idAttack;
     reg_dados->year = linha->year;
     reg_dados->financialLoss = linha->financialLoss;
-
     reg_dados->country = malloc(strlen(linha->country));
+
     if (reg_dados->country == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o país.\n");
+        printf("Falha no processamento do arquivo.\n");
         free(reg_dados);
         return NULL;
     }
-    strcpy(reg_dados->country, linha->country);
 
+    strcpy(reg_dados->country, linha->country);
     reg_dados->attackType = malloc(strlen(linha->attackType));
+
     if (reg_dados->attackType == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o tipo de ataque.\n");
+        printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados);
         return NULL;
     }
-    strcpy(reg_dados->attackType, linha->attackType);
 
+    strcpy(reg_dados->attackType, linha->attackType);
     reg_dados->targetIndustry = malloc(strlen(linha->targetIndustry));
+
     if (reg_dados->targetIndustry == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para a indústria alvo.\n");
+        printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados->attackType);
         free(reg_dados);
         return NULL;
     }
-    strcpy(reg_dados->targetIndustry, linha->targetIndustry);
 
+    strcpy(reg_dados->targetIndustry, linha->targetIndustry);
     reg_dados->defenseMechanism = malloc(strlen(linha->defenseMechanism));
+
     if (reg_dados->defenseMechanism == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o mecanismo de defesa.\n");
+        printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados->attackType);
         free(reg_dados->targetIndustry);
         free(reg_dados);
         return NULL;
     }
+
     strcpy(reg_dados->defenseMechanism, linha->defenseMechanism);
     free(linha);
-
     return reg_dados;
 }
 
@@ -198,8 +194,6 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
 bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
 
     escreve_header_no_bin(bin); // Escreve o cabeçalho no arquivo binário
-    
-    
     int nroRegArq = 0; // Inicializa um contador para armazenar o número de registros
     
     while (true) {
@@ -214,8 +208,6 @@ bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
         fwrite(&reg_dados->idAttack, sizeof(int), 1, bin);
         fwrite(&reg_dados->year, sizeof(int), 1, bin);
         fwrite(&reg_dados->financialLoss, sizeof(float), 1, bin);
-        
-
         
         if (memcmp(reg_dados->country, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
             fputc('1', bin); // Codigo do campo country
@@ -266,6 +258,8 @@ bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
     // Escrever o número de registros
     fwrite(&nroRegArq, sizeof(int), 1, bin);
 
+    fclose(bin);
+    fclose(csv);
     return true;
 }
 
@@ -293,27 +287,3 @@ void binarioNaTela(char *nomeArquivoBinario) {
     free(mb);
     fclose(fs);
 }
-
-// int main() {
-//     FILE *csv = fopen("ataque2.csv", "r");
-//     if (csv == NULL) {
-//         fprintf(stderr, "Erro ao abrir o arquivo CSV.\n");
-//         return 1;
-//     }
-
-//     FILE *bin = fopen("out.bin", "wb");
-//     if (bin == NULL) {
-//         fprintf(stderr, "Erro ao abrir o arquivo binário.\n");
-//         fclose(csv);
-//         return 1;
-//     }
-
-//     escreve_registros_no_bin(csv, bin);
-
-//     fclose(csv);
-//     fclose(bin);
-
-//     binarioNaTela("out.bin");
-
-//     return 0;
-// }

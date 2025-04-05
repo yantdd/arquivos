@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define LIXO_STRING "$"
 #define LIXO_INT -1
@@ -12,7 +13,7 @@
 #define DELIM '|'
 #define NADA_CONSTA "NADA CONSTA"
 
-
+// Struct com os campos de um registro, os de campo variável só são gravados caso não sejam lixo.
 typedef struct reg_dados {
     char removido;
     int tamanhoRegistro;
@@ -27,11 +28,11 @@ typedef struct reg_dados {
 } REG_DADOS;
 
 
-
+// Lê um registro do arquivo binário, preenche uma struct REG_DADOS e retorna um ponteiro para ela.
 REG_DADOS *get_registro(FILE *bin) {
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
     if (reg_dados == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para o registro de dados.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
@@ -42,7 +43,11 @@ REG_DADOS *get_registro(FILE *bin) {
 
     if (fread(&reg_dados->removido, sizeof(char), 1, bin) != 1) {
         free(reg_dados);
+<<<<<<< HEAD
         return NULL;  // EOF
+=======
+        return NULL;  //EOF
+>>>>>>> 1249778 (atualização)
     }
 
     fread(&reg_dados->tamanhoRegistro, sizeof(int), 1, bin);
@@ -51,34 +56,43 @@ REG_DADOS *get_registro(FILE *bin) {
     fread(&reg_dados->year, sizeof(int), 1, bin);
     fread(&reg_dados->financialLoss, sizeof(float), 1, bin);
 
-    int tamanho_reg = reg_dados->tamanhoRegistro - sizeof(long long int) - 2*sizeof(int) - sizeof(float);
+    int tamanho_reg = reg_dados->tamanhoRegistro - sizeof(long long int) - 3*sizeof(int) - sizeof(float);
     
-
     while (tamanho_reg > 0) {
-        char c = fgetc(bin);
+        int c = fgetc(bin);
         tamanho_reg--;
 
         switch (c) {
-            case '1':
+            case '1': {
                 reg_dados->country = (char *)malloc(50);
                 fscanf(bin, "%[^|]", reg_dados->country);
-                tamanho_reg -= strlen(reg_dados->country);
+                fgetc(bin);
+                tamanho_reg -= (strlen(reg_dados->country) + 1);
+                }
                 break;
-            case '2':
+            case '2': {
                 reg_dados->attackType = (char *)malloc(50);
                 fscanf(bin, "%[^|]", reg_dados->attackType);
-                tamanho_reg -= strlen(reg_dados->attackType);
+                fgetc(bin);
+                tamanho_reg -= (strlen(reg_dados->attackType) + 1);
+                }
                 break;
-            case '3':
+            case '3':{
                 reg_dados->targetIndustry = (char *)malloc(50);
                 fscanf(bin, "%[^|]", reg_dados->targetIndustry);
-                tamanho_reg -= strlen(reg_dados->targetIndustry);
+                fgetc(bin);
+                tamanho_reg -= (strlen(reg_dados->targetIndustry) + 1);
+                }
                 break;
-            case '4':
+            case '4':{
                 reg_dados->defenseMechanism = (char *)malloc(50);
                 fscanf(bin, "%[^|]", reg_dados->defenseMechanism);
-                tamanho_reg -= strlen(reg_dados->defenseMechanism);
+                fgetc(bin);
+                tamanho_reg -= (strlen(reg_dados->defenseMechanism) + 1);
+                }
                 break;
+
+
         }
     }
     
@@ -107,14 +121,13 @@ REG_DADOS *get_registro(FILE *bin) {
         }
     }
 
-
-    
     return reg_dados;
 }
 
+
 void imprime_registro_bin(REG_DADOS *reg_dados) {
     if (reg_dados == NULL) {
-        fprintf(stderr, "Registro de dados é nulo.\n");
+        printf("Falha no processamento do arquivo.\n");
         return;
     }
     
@@ -126,7 +139,7 @@ void imprime_registro_bin(REG_DADOS *reg_dados) {
     } else {
         printf("ANO EM QUE O ATAQUE OCORREU: %d\n", reg_dados->year);
     }
-    
+
     printf("PAIS ONDE OCORREU O ATAQUE: %s\n", reg_dados->country);
     printf("SETOR DA INDUSTRIA QUE SOFREU O ATAQUE: %s\n", reg_dados->targetIndustry);
     printf("TIPO DE AMEACA A SEGURANCA CIBERNETICA: %s\n", reg_dados->attackType);
@@ -148,6 +161,7 @@ void imprime_registro_bin(REG_DADOS *reg_dados) {
     return;
 }
 
+
 void imprime_bin(FILE *bin) {
     if (ftell(bin) == 0) {
         fseek(bin, 276, SEEK_SET);
@@ -158,7 +172,10 @@ void imprime_bin(FILE *bin) {
         imprime_registro_bin(reg_dados);
         reg_dados = get_registro(bin);
     }
+
+    fclose(bin);
 }
+<<<<<<< HEAD
 
 
 // int main(void) {
@@ -175,3 +192,5 @@ void imprime_bin(FILE *bin) {
 //     fclose(bin);
 //     return 0;
 // }
+=======
+>>>>>>> 1249778 (atualização)

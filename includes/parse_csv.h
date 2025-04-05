@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdbool.h>
 
 #define DELIMITADOR ','
@@ -22,4 +21,4 @@ typedef struct linha_csv {
 
 LINHA_CSV *le_linha_csv(FILE *csv);
 
-#endif // PARSE_CSV_H
+#endif

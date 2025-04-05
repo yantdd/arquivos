@@ -29,11 +29,10 @@ bool eh_delimitador(int c) {
 LINHA_CSV *incializa_linha_csv() {
     LINHA_CSV *linha = (LINHA_CSV *)calloc(1, sizeof(LINHA_CSV));
     if (linha == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para a linha CSV.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
-    
     linha->idAttack = -1;
     linha->year = -1;
     linha->financialLoss = -1.0;
@@ -56,7 +55,7 @@ void pula_descricao_csv(FILE *csv) {
 LINHA_CSV *le_linha_csv(FILE *csv) {
     LINHA_CSV *linha = incializa_linha_csv();
     if (linha == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para a linha CSV.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
@@ -123,36 +122,3 @@ LINHA_CSV *le_linha_csv(FILE *csv) {
     return linha;
     
 }
-
-
-// int main() {
-//     FILE *csv = fopen("ataque2.csv", "r");
-//     if (csv == NULL) {
-//         fprintf(stderr, "Erro ao abrir o arquivo CSV.\n");
-//         return 1;
-//     }
-
-//     fseek(csv, 254, SEEK_SET);
-
-//     int linha_num = 1;
-//     LINHA_CSV *linha;
-    
-
-//     while ((linha = le_linha_csv(csv)) != NULL) {
-//         printf("\n========= LINHA %d =========\n", linha_num++);
-//         printf("ID: %d\n", linha->idAttack);
-//         printf("Ano: %d\n", linha->year);
-//         printf("Perda Financeira: %.2f\n", linha->financialLoss);
-//         printf("País: %s\n", linha->country);
-//         printf("Tipo de Ataque: %s\n", linha->attackType);
-//         printf("Indústria Alvo: %s\n", linha->targetIndustry);
-//         printf("Mecanismo de Defesa: %s\n", linha->defenseMechanism);
-        
-//         free(linha);
-        
-//         if (linha_num > 50) break;
-//     }
-
-//     fclose(csv);
-//     return 0;
-// }
