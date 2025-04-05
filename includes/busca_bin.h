@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-// Funções chamadas diretamente pela main
 void chama_match_bin(char *nome_arquivo, int num_buscas);
 
 #endif
