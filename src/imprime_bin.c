@@ -175,22 +175,4 @@ void imprime_bin(FILE *bin) {
 
     fclose(bin);
 }
-<<<<<<< HEAD
 
-
-// int main(void) {
-//     FILE *bin = fopen("ataque2.bin", "rb");
-
-//     if (bin == NULL) {
-//         fprintf(stderr, "Erro ao abrir o arquivo binário.\n");
-//         return 1;
-//     }
-
-    
-//     imprime_bin(bin);
-
-//     fclose(bin);
-//     return 0;
-// }
-=======
->>>>>>> 1249778 (atualização)
