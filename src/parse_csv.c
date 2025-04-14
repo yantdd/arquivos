@@ -10,6 +10,7 @@
 // 5 - targetIndustry
 // 6 - defenseMechanism
 
+// identificação dos campos
 enum {
     ID_ATTACK = 0,
     YEAR,
@@ -26,6 +27,7 @@ bool eh_delimitador(int c) {
     return c == DELIMITADOR;
 }
 
+// Aloca espaço e inicializa os campos do registro
 LINHA_CSV *incializa_linha_csv() {
     LINHA_CSV *linha = (LINHA_CSV *)calloc(1, sizeof(LINHA_CSV));
     if (linha == NULL) {
@@ -34,6 +36,7 @@ LINHA_CSV *incializa_linha_csv() {
     }
 
     
+    // Inicializa os campos inteiros com -1
     linha->idAttack = -1;
     linha->year = -1;
     linha->financialLoss = -1.0;
@@ -47,9 +50,10 @@ LINHA_CSV *incializa_linha_csv() {
     return linha;
 }
 
+// pula a descrição do arquivo csv (que ocupa 254 bytes)
 void pula_descricao_csv(FILE *csv) {
-    if (ftell(csv) == 0){
-        fseek(csv, 254, SEEK_SET);
+    if (ftell(csv) == 0){ // se estiver no inicio do arquivo
+        fseek(csv, 254, SEEK_SET); // pula a descrição
     }
 }
 
@@ -62,26 +66,30 @@ LINHA_CSV *le_linha_csv(FILE *csv) {
 
     pula_descricao_csv(csv);
 
-    int c;
-    int campo_atual = 0;
+    int c; // Armazena o caractere lido do arquivo.
+    int campo_atual = 0; // Controla em qual campo da linha CSV estamos (0 = primeiro campo, 1 = segundo campo, etc.)
     
     // Verificar se já estamos no final do arquivo
     if ((c = fgetc(csv)) == EOF) {
         free(linha);
         return NULL;
     }
-    ungetc(c, csv);
+    ungetc(c, csv); // Se não for EOF, devolve o caractere lido para o arquivo
     
+    // Loop para leitura da linha até o fim do arquivo ou fim da linha
     while ((c = fgetc(csv)) != EOF && c != '\n') {
-        if (eh_delimitador(c)) {
+        if (eh_delimitador(c)) { //se for delimitador, próximo campo
             campo_atual++;
             continue;
         }
+        ungetc(c, csv); // devolve o caractere lido para o arquivo
 
-        ungetc(c, csv);
+        //leitura dos campos
         switch (campo_atual) {
             case ID_ATTACK:
-                fscanf(csv, "%d", &linha->idAttack);
+                if (fscanf(csv, "%d", &linha->idAttack)){
+                    linha->idAttack = -1; //Valor padrão em caso de falha
+                }
                 break;
             case YEAR:
                 if (fscanf(csv, "%d", &linha->year) != 1) {
