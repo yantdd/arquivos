@@ -11,7 +11,8 @@
 // 6 - defenseMechanism
 
 // identificação dos campos
-enum {
+enum
+{
     ID_ATTACK = 0,
     YEAR,
     FINANCIAL_LOSS,
@@ -23,24 +24,26 @@ enum {
 
 typedef struct linha_csv LINHA_CSV;
 
-bool eh_delimitador(int c) {
+bool eh_delimitador(int c)
+{
     return c == DELIMITADOR;
 }
 
 // Aloca espaço e inicializa os campos do registro
-LINHA_CSV *incializa_linha_csv() {
+LINHA_CSV *incializa_linha_csv()
+{
     LINHA_CSV *linha = (LINHA_CSV *)calloc(1, sizeof(LINHA_CSV));
-    if (linha == NULL) {
+    if (linha == NULL)
+    {
         fprintf(stderr, "Erro ao alocar memória para a linha CSV.\n");
         return NULL;
     }
 
-    
     // Inicializa os campos inteiros com -1
     linha->idAttack = -1;
     linha->year = -1;
     linha->financialLoss = -1.0;
-    
+
     // Garantir que as strings sejam inicializadas corretamente
     strcpy(linha->country, "$");
     strcpy(linha->attackType, "$");
@@ -51,83 +54,94 @@ LINHA_CSV *incializa_linha_csv() {
 }
 
 // pula a descrição do arquivo csv (que ocupa 254 bytes)
-void pula_descricao_csv(FILE *csv) {
-    if (ftell(csv) == 0){ // se estiver no inicio do arquivo
+void pula_descricao_csv(FILE *csv)
+{
+    if (ftell(csv) == 0)
+    {                              // se estiver no inicio do arquivo
         fseek(csv, 254, SEEK_SET); // pula a descrição
     }
 }
 
-LINHA_CSV *le_linha_csv(FILE *csv) {
+LINHA_CSV *le_linha_csv(FILE *csv)
+{
     LINHA_CSV *linha = incializa_linha_csv();
-    if (linha == NULL) {
+    if (linha == NULL)
+    {
         fprintf(stderr, "Erro ao alocar memória para a linha CSV.\n");
         return NULL;
     }
 
     pula_descricao_csv(csv);
 
-    int c; // Armazena o caractere lido do arquivo.
+    int c;               // Armazena o caractere lido do arquivo.
     int campo_atual = 0; // Controla em qual campo da linha CSV estamos (0 = primeiro campo, 1 = segundo campo, etc.)
-    
+
     // Verificar se já estamos no final do arquivo
-    if ((c = fgetc(csv)) == EOF) {
+    if ((c = fgetc(csv)) == EOF)
+    {
         free(linha);
         return NULL;
     }
     ungetc(c, csv); // Se não for EOF, devolve o caractere lido para o arquivo
-    
+
     // Loop para leitura da linha até o fim do arquivo ou fim da linha
-    while ((c = fgetc(csv)) != EOF && c != '\n') {
-        if (eh_delimitador(c)) { //se for delimitador, próximo campo
+    while ((c = fgetc(csv)) != EOF && c != '\n')
+    {
+        if (eh_delimitador(c))
+        { // se for delimitador, próximo campo
             campo_atual++;
             continue;
         }
         ungetc(c, csv); // devolve o caractere lido para o arquivo
 
-        //leitura dos campos
-        switch (campo_atual) {
-            case ID_ATTACK:
-                if (fscanf(csv, "%d", &linha->idAttack)){
-                    linha->idAttack = -1; //Valor padrão em caso de falha
-                }
-                break;
-            case YEAR:
-                if (fscanf(csv, "%d", &linha->year) != 1) {
-                    linha->year = -1; // Valor padrão em caso de falha
-                }
-                break;
-            case FINANCIAL_LOSS:
-                if (fscanf(csv, "%f", &linha->financialLoss) != 1) {
-                    linha->financialLoss = -1.0; // Valor padrão em caso de falha
-                }
-                break;
-            case COUNTRY:
-                if (fscanf(csv, "%[^,]", linha->country) < 0) {
-                    strcpy(linha->country, "$"); // Valor padrão em caso de falha
-                }
-                break;
-            case ATTACK_TYPE:
-                if (fscanf(csv, "%[^,]", linha->attackType) < 0) {
-                    strcpy(linha->attackType, "$"); // Valor padrão em caso de falha
-                }
-                break;
-            case TARGET_INDUSTRY:
-                if (fscanf(csv, "%[^,]", linha->targetIndustry) < 0) {
-                    strcpy(linha->targetIndustry, "$"); // Valor padrão em caso de falha
-                }
-                break;
-            case DEFENSE_MECHANISM:
-                if (fscanf(csv, "%[^\n]", linha->defenseMechanism) < 0) {
-                    strcpy(linha->defenseMechanism, "$"); // Valor padrão em caso de falha
-                }
-                break;
-            default:
-                // Consumir o resto da linha em caso de campos extras
-                fscanf(csv, "%*[^,\n]");
-                break;
+        // leitura dos campos
+        switch (campo_atual)
+        {
+        case ID_ATTACK:
+            fscanf(csv, "%d", &linha->idAttack); // Não terá falha (combinado com o professor)
+            break;
+        case YEAR:
+            if (fscanf(csv, "%d", &linha->year) != 1)
+            {
+                linha->year = -1; // Valor padrão em caso de falha
+            }
+            break;
+        case FINANCIAL_LOSS:
+            if (fscanf(csv, "%f", &linha->financialLoss) != 1)
+            {
+                linha->financialLoss = -1.0; // Valor padrão em caso de falha
+            }
+            break;
+        case COUNTRY:
+            if (fscanf(csv, "%[^,]", linha->country) < 0)
+            {
+                strcpy(linha->country, "$"); // Valor padrão em caso de falha
+            }
+            break;
+        case ATTACK_TYPE:
+            if (fscanf(csv, "%[^,]", linha->attackType) < 0)
+            {
+                strcpy(linha->attackType, "$"); // Valor padrão em caso de falha
+            }
+            break;
+        case TARGET_INDUSTRY:
+            if (fscanf(csv, "%[^,]", linha->targetIndustry) < 0)
+            {
+                strcpy(linha->targetIndustry, "$"); // Valor padrão em caso de falha
+            }
+            break;
+        case DEFENSE_MECHANISM:
+            if (fscanf(csv, "%[^\n]", linha->defenseMechanism) < 0)
+            {
+                strcpy(linha->defenseMechanism, "$"); // Valor padrão em caso de falha
+            }
+            break;
+        default:
+            // Consumir o resto da linha em caso de campos extras
+            fscanf(csv, "%*[^,\n]");
+            break;
         }
     }
 
     return linha;
-    
 }

@@ -11,21 +11,25 @@
 #define LIXO_FLOAT -1.0
 #define DELIM_CAMPO '|'
 
-
-
-
-REG_HEADER *inicializa_header_registro() {
+// Inicializa a estrutura do header do arquivo binário
+REG_HEADER *inicializa_header_registro()
+{
+    // aloca de memória para o header
     REG_HEADER *header = (REG_HEADER *)calloc(1, sizeof(REG_HEADER));
-    if (header == NULL) {
+    if (header == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
-    header->status = '0';
-    header->topo = -1;
-    header->proxByteOffset = 0;
-    header->nroRegArq = 0;
-    header->nroRegRem = 0;
+    // Configura valores padrão do header
+    header->status = '0';       // '0' = inconsistente, '1' = consistente
+    header->topo = -1;          // Topo da pilha de registros removidos
+    header->proxByteOffset = 0; // Próxima posição disponível no arquivo
+    header->nroRegArq = 0;      // Número de registros no arquivo
+    header->nroRegRem = 0;      // Número de registros removidos
+
+    // Copia descrições dos campos
     memcpy(header->descreveIdentificador, "IDENTIFICADOR DO ATAQUE", 23);
     memcpy(header->descreveYear, "ANO EM QUE O ATAQUE OCORREU", 27);
     memcpy(header->descreveFinancialLoss, "PREJUIZO CAUSADO PELO ATAQUE", 28);
@@ -40,15 +44,16 @@ REG_HEADER *inicializa_header_registro() {
     return header;
 }
 
-
-
-
-bool escreve_header_no_bin(FILE *bin) {
+// Escreve o header no arquivo binário
+bool escreve_header_no_bin(FILE *bin)
+{
     REG_HEADER *header = inicializa_header_registro();
-    if (header == NULL) {
+    if (header == NULL)
+    {
         return false;
     }
 
+    // Escreve cada campo do header no arquivo binário
     fwrite(&header->status, sizeof(char), 1, bin);
     fwrite(&header->topo, sizeof(long long int), 1, bin);
     fwrite(&header->proxByteOffset, sizeof(long long int), 1, bin);
@@ -69,65 +74,78 @@ bool escreve_header_no_bin(FILE *bin) {
     return true;
 }
 
-
-int calcula_tamanho_registro(LINHA_CSV *linha) {
-    int tamanho = 0;
+// Calcula o tamanho do registro binário
+int calcula_tamanho_registro(LINHA_CSV *linha)
+{
+    int tamanho = 0;                  // inicializa o tamanho
     tamanho += sizeof(long long int); // Campo 'prox'
-    tamanho += sizeof(int); // Campo 'idAttack'
-    tamanho += sizeof(int); // Campo 'year'
-    tamanho += sizeof(float); // Campo 'financialLoss'
-    
+    tamanho += sizeof(int);           // Campo 'idAttack'
+    tamanho += sizeof(int);           // Campo 'year'
+    tamanho += sizeof(float);         // Campo 'financialLoss'
+
     // Campo 'country'
-    if (memcmp(linha->country, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+    if (memcmp(linha->country, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+    {
         tamanho += strlen(linha->country) + 2; // +2 para o delimitador e keyword
     }
     // Campo 'attackType'
-    if (memcmp(linha->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+    if (memcmp(linha->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+    {
         tamanho += strlen(linha->attackType) + 2; // +2 para o delimitador e keyword
     }
     // Campo 'targetIndustry'
-    if (memcmp(linha->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+    if (memcmp(linha->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+    {
         tamanho += strlen(linha->targetIndustry) + 2; // +2 para o delimitador e keyword
     }
     // Campo 'defenseMechanism'
-    if (memcmp(linha->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+    if (memcmp(linha->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+    {
         tamanho += strlen(linha->defenseMechanism) + 2; // +2 para o delimitador e keyword
     }
     return tamanho;
 }
 
-
-
-REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
+// Converte uma linha CSV para registro binário
+REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv)
+{
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
-    if (reg_dados == NULL) {
+    if (reg_dados == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
+    // leitura da linha do arquivo csv
     LINHA_CSV *linha = le_linha_csv(csv);
-    if (linha == NULL) {
+    if (linha == NULL)
+    {
         free(reg_dados);
         return NULL;
     }
-    
-    reg_dados->removido = '0';
-    reg_dados->prox = -1;
+
+    // Copia dados fixos
+    reg_dados->removido = '0'; // 0 = não removido
+    reg_dados->prox = -1;      // Próximo registro (lista encadeada)
     reg_dados->tamanhoRegistro = calcula_tamanho_registro(linha);
     reg_dados->idAttack = linha->idAttack;
     reg_dados->year = linha->year;
     reg_dados->financialLoss = linha->financialLoss;
 
+    // Aloca e copia strings (campos variáveis)
     reg_dados->country = malloc(strlen(linha->country));
-    if (reg_dados->country == NULL) {
+    if (reg_dados->country == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
+        // Libera memória em caso de erro
         free(reg_dados);
         return NULL;
     }
     strcpy(reg_dados->country, linha->country);
 
     reg_dados->attackType = malloc(strlen(linha->attackType));
-    if (reg_dados->attackType == NULL) {
+    if (reg_dados->attackType == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados);
@@ -136,7 +154,8 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     strcpy(reg_dados->attackType, linha->attackType);
 
     reg_dados->targetIndustry = malloc(strlen(linha->targetIndustry));
-    if (reg_dados->targetIndustry == NULL) {
+    if (reg_dados->targetIndustry == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados->attackType);
@@ -146,7 +165,8 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     strcpy(reg_dados->targetIndustry, linha->targetIndustry);
 
     reg_dados->defenseMechanism = malloc(strlen(linha->defenseMechanism));
-    if (reg_dados->defenseMechanism == NULL) {
+    if (reg_dados->defenseMechanism == NULL)
+    {
         printf("Falha no processamento do arquivo.\n");
         free(reg_dados->country);
         free(reg_dados->attackType);
@@ -160,80 +180,91 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv) {
     return reg_dados;
 }
 
+// Atualiza o header do arquivo binário
+void atualiza_header(FILE *bin, int nroRegArq, long long int proxByteOffset)
+{
+    fseek(bin, 0, SEEK_SET); // posiciona no início do arquivo
 
-void atualiza_header(FILE *bin, int nroRegArq, long long int proxByteOffset) {
-    fseek(bin, 0, SEEK_SET);
-
-    char status = '1';
+    char status = '1'; // marca como consistente
     fwrite(&status, sizeof(char), 1, bin);
-    
+
     // Pular o campo 'topo' que já está definido
     fseek(bin, sizeof(long long int), SEEK_CUR);
-    
+
     // Escrever o próximo byte disponível
     fwrite(&proxByteOffset, sizeof(long long int), 1, bin);
-    
+
     // Escrever o número de registros
     fwrite(&nroRegArq, sizeof(int), 1, bin);
 
     return;
 }
 
-bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
+// Processa arquivo CSV e gera arquivo binário
+bool escreve_registros_no_bin(FILE *csv, FILE *bin)
+{
 
-    escreve_header_no_bin(bin); // Escreve o cabeçalho no arquivo binário
+    escreve_header_no_bin(bin); // Escreve o header no arquivo binário
 
     int nroRegArq = 0; // Inicializa um contador para armazenar o número de registros
-    
-    while (true) {
+
+    while (true)
+    {
         REG_DADOS *reg_dados = converte_linha_csv_para_registro_bin(csv);
-        if (reg_dados == NULL) {
+        if (reg_dados == NULL)
+        {
             break;
         }
-        
+
         fwrite(&reg_dados->removido, sizeof(char), 1, bin);
         fwrite(&reg_dados->tamanhoRegistro, sizeof(int), 1, bin);
         fwrite(&reg_dados->prox, sizeof(long long int), 1, bin);
         fwrite(&reg_dados->idAttack, sizeof(int), 1, bin);
         fwrite(&reg_dados->year, sizeof(int), 1, bin);
         fwrite(&reg_dados->financialLoss, sizeof(float), 1, bin);
-        
-        if (memcmp(reg_dados->country, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
-            fputc('1', bin); // Codigo do campo country
-            fwrite(reg_dados->country, strlen(reg_dados->country), 1, bin);
-            fputc(DELIM_CAMPO, bin);
+
+        // Verifica se não é lixo
+        if (memcmp(reg_dados->country, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+        {
+            fputc('1', bin);                                                // Codigo do campo country
+            fwrite(reg_dados->country, strlen(reg_dados->country), 1, bin); // escreve o country
+            fputc(DELIM_CAMPO, bin);                                        // coloca o delimitador
         }
 
-        if (memcmp(reg_dados->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        if (memcmp(reg_dados->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+        {
             fputc('2', bin); // Codigo do campo attaclkType
             fwrite(reg_dados->attackType, strlen(reg_dados->attackType), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
-        if (memcmp(reg_dados->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        if (memcmp(reg_dados->targetIndustry, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+        {
             fputc('3', bin); // Codigo do campo targetIndustry
             fwrite(reg_dados->targetIndustry, strlen(reg_dados->targetIndustry), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
-        if (memcmp(reg_dados->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0) {
+        if (memcmp(reg_dados->defenseMechanism, LIXO_STRING, strlen(LIXO_STRING)) != 0)
+        {
             fputc('4', bin); // Codigo do campo defenseMechanism
             fwrite(reg_dados->defenseMechanism, strlen(reg_dados->defenseMechanism), 1, bin);
             fputc(DELIM_CAMPO, bin);
         }
 
+        // Libera memória do registro
         free(reg_dados->country);
         free(reg_dados->attackType);
         free(reg_dados->targetIndustry);
         free(reg_dados->defenseMechanism);
         free(reg_dados);
-        
+
         nroRegArq++;
     }
 
     long long int proxOffset = ftell(bin); // Atualiza o próximo byte offset
-    
-    // Atualiza o cabeçalho com o número de registros e o próximo byte offset
+
+    // Atualiza o header com o número de registros e o próximo byte offset
     atualiza_header(bin, nroRegArq, proxOffset);
     fclose(bin);
     fclose(csv);
@@ -241,12 +272,14 @@ bool escreve_registros_no_bin(FILE *csv, FILE *bin) {
 }
 
 // Função fornecida pelo monitor
-void binarioNaTela(char *nomeArquivoBinario) {
+void binarioNaTela(char *nomeArquivoBinario)
+{
     unsigned long i, cs;
     unsigned char *mb;
     size_t fl;
     FILE *fs;
-    if (nomeArquivoBinario == NULL || !(fs = fopen(nomeArquivoBinario, "rb"))) {
+    if (nomeArquivoBinario == NULL || !(fs = fopen(nomeArquivoBinario, "rb")))
+    {
         fprintf(stderr, "ERRO AO ESCREVER O BINARIO NA TELA (função binarioNaTela): não foi possível abrir o arquivo que me passou para leitura. Ele existe e você tá passando o nome certo? Você lembrou de fechar ele com fclose depois de usar?\n");
         return;
     }
@@ -257,7 +290,8 @@ void binarioNaTela(char *nomeArquivoBinario) {
     fread(mb, 1, fl, fs);
 
     cs = 0;
-    for (i = 0; i < fl; i++) {
+    for (i = 0; i < fl; i++)
+    {
         cs += (unsigned long)mb[i];
     }
     printf("%lf\n", (cs / (double)100));
