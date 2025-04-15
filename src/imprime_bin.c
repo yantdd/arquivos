@@ -1,11 +1,27 @@
-#include "parse_csv.h"
-#include "csv_to_bin.h"
+/*******************************************************************************
+ *                                                                             *
+ *                     SCC0215 - Organização de Arquivos                       *
+ *                                                                             *
+ *                             Trabalho Prático                                *
+ *                                                                             *
+ * Professora: Cristina Dutra de Aguiar                                        *
+ *                                                                             *
+ * Aluno: Yan Trindade Meireles - 13680035                                     *
+ *                                                                             *
+ * Aluno: Rafael Perez Carmanhani - 15485420                                   *
+ *                                                                             *
+ *******************************************************************************/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include "parse_csv.h"
+#include "csv_to_bin.h"
 
 #define LIXO_STRING "$"
 #define LIXO_INT -1
@@ -13,12 +29,19 @@
 #define DELIM '|'
 #define NADA_CONSTA "NADA CONSTA"
 
+/*
+ * Busca um registro no binário e carrega seus dados na struct REG_DADOS.
+ * Parâmetro:
+ *  bin - ponteiro para o arquivo binário
+ * Retorno:
+ *  ponteiro para o registro do binário ou NULL em caso de erro.
+ */
 REG_DADOS *get_registro(FILE *bin)
 {
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
     if (reg_dados == NULL)
     {
-        printf("Erro ao alocar memória para o registro de dados.\n");
+        printf("Falha no processamento do arquivo.\n");
         return NULL;
     }
 
@@ -56,9 +79,9 @@ REG_DADOS *get_registro(FILE *bin)
         case '1':
         {
             reg_dados->country = (char *)malloc(50);
-            fscanf(bin, "%[^|]", reg_dados->country);
+            fscanf(bin, "%[^|]", reg_dados->country); // Lê até o delimitador '|'
             fgetc(bin); // Consome o delimmitador
-            tamanho_reg -= (strlen(reg_dados->country) + 1);
+            tamanho_reg -= (strlen(reg_dados->country) + 1); // Decrementa o tamanho do registro restante a ser lido
         }
         break;
         // attackType
@@ -66,7 +89,7 @@ REG_DADOS *get_registro(FILE *bin)
         {
             reg_dados->attackType = (char *)malloc(50);
             fscanf(bin, "%[^|]", reg_dados->attackType);
-            fgetc(bin);
+            fgetc(bin); 
             tamanho_reg -= (strlen(reg_dados->attackType) + 1);
         }
         break;
@@ -91,7 +114,7 @@ REG_DADOS *get_registro(FILE *bin)
         }
     }
 
-    // Preenche campos não encontrados com "NADA CONSTA"
+    // Preenche na struct campos não encontrados com "NADA CONSTA" para a futura impressão
     if (reg_dados->country == NULL)
     {
         reg_dados->country = (char *)malloc(strlen(NADA_CONSTA));
@@ -128,16 +151,20 @@ REG_DADOS *get_registro(FILE *bin)
     return reg_dados;
 }
 
-/* Imprime um registro na saída padrão formatado */
+/*
+ * Imprime de maneira formatada os dados de um registro binário.
+ * Parâmetro:
+ *  reg_dados - ponteiro para o registro a ser impresso
+ */
 void imprime_registro_bin(REG_DADOS *reg_dados)
 {
     if (reg_dados == NULL)
     {
-        fprintf(stderr, "Registro de dados é nulo.\n");
+        printf("Falha no processamento do arquivo.\n");
         return;
     }
 
-    // Imprimir todos os campos
+    // Imprime todos os campos
     printf("IDENTIFICADOR DO ATAQUE: %d\n", reg_dados->idAttack);
 
     if (reg_dados->year == LIXO_INT)
@@ -174,10 +201,14 @@ void imprime_registro_bin(REG_DADOS *reg_dados)
     return;
 }
 
-// Imprime os registros
+/*
+ * Imprime todos os registros do arquivo binário.
+ * Parâmetro:
+ *  bin - ponteiro para o arquivo binário
+ */
 void imprime_bin(FILE *bin)
 {
-    // pula o cabeçalho
+    // Pula o cabeçalho (276 bytes)
     if (ftell(bin) == 0)
     {
         fseek(bin, 276, SEEK_SET);
@@ -191,5 +222,5 @@ void imprime_bin(FILE *bin)
         reg_dados = get_registro(bin);
     }
 
-    fclose(bin); // fecha o arquivo
+    fclose(bin); // Fecha o arquivo
 }

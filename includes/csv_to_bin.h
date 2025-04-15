@@ -2,25 +2,29 @@
 #define CSV_TO_BIN_H
 #include "parse_csv.h"
 
+
+// Estrutura para armazenar o cabeçalho do arquivo binário
 typedef struct reg_header {
-    char status; // '0' para arquivo inconsistente, '1' para arquivo consistente.
-    long long int topo; // Byte offset de um registro logicamente removido, ou -1 caso não haja.
-    long long int proxByteOffset; // Próximo byte offset disponível. Deve ser iniciado com o valor ‘0’. 
-    int nroRegArq; // Número de registros não removidos presentes no arquivo. Deve ser iniciado com o valor ‘0’. 
-    int nroRegRem; // Número de registros logicamente marcados como removidos. Deve ser iniciado com o valor ‘0’
+    char status;                        // '0' para arquivo inconsistente, '1' para arquivo consistente.
+    long long int topo;                 // Byte offset de um registro logicamente removido, ou -1 caso não haja.
+    long long int proxByteOffset;       // Próximo byte offset disponível. Deve ser iniciado com o valor ‘0’. 
+    int nroRegArq;                      // Número de registros não removidos presentes no arquivo. Deve ser iniciado com o valor ‘0’. 
+    int nroRegRem;                      // Número de registros logicamente marcados como removidos. Deve ser iniciado com o valor ‘0’
     char descreveIdentificador[23];
     char descreveYear[27];
     char descreveFinancialLoss[28];
-    char codDescreveCountry; // Cod. keyword, assume o valor “1”.
+    char codDescreveCountry;            // Cod. keyword, assume o valor “1”.
     char descreveCountry[26];
-    char codDescreveType; // Cod. keyword, assume o valor “2”.
+    char codDescreveType;               // Cod. keyword, assume o valor “2”.
     char descreveType[38]; 
-    char codDescreveTargetIndustry; // Cod. keyword, assume o valor “3”.
+    char codDescreveTargetIndustry;     // Cod. keyword, assume o valor “3”.
     char descreveTargetIndustry[38];
-    char codDescreveDefense; // Cod. keyword, assume o valor “4”.
+    char codDescreveDefense;            // Cod. keyword, assume o valor “4”.
     char descreveDefense[67];
 } REG_HEADER;
 
+
+// Estrutura para armazenar os dados de cada registro do arquivo binário
 typedef struct reg_dados {
     char removido;
     int tamanhoRegistro;

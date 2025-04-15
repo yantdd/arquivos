@@ -1,3 +1,19 @@
+/*******************************************************************************
+ *                                                                             *
+ *                     SCC0215 - Organização de Arquivos                       *
+ *                                                                             *
+ *                             Trabalho Prático                                *
+ *                                                                             *
+ * Professora: Cristina Dutra de Aguiar                                        *
+ *                                                                             *
+ * Aluno: Yan Trindade Meireles - 13680035                                     *
+ *                                                                             *
+ * Aluno: Rafael Perez Carmanhani - 15485420                                   *
+ *                                                                             *
+ *******************************************************************************/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,16 +34,19 @@ int main(void)
 
     switch (funcionalidade)
     {
-    case 1:                                             // Converter CSV para binário
-        scanf("%s %s", arquivo_entrada, arquivo_saida); // Lê p mp,e dps arquivps
+    // Funcionalidade 1: converter CSV para binário    
+    case 1:             
+        scanf("%s %s", arquivo_entrada, arquivo_saida);
 
-        // Abre os arquivos
+        // Abre o CSV para leitura
         FILE *csv = fopen(arquivo_entrada, "r");
         if (csv == NULL)
         {
             printf("Falha no processamento do arquivo.\n");
             return 0;
         }
+
+        // Abre o arquivo binário para escrita
         FILE *bin = fopen(arquivo_saida, "wb");
         if (bin == NULL)
         {
@@ -35,27 +54,30 @@ int main(void)
             fclose(csv);
             return 0;
         }
-        escreve_registros_no_bin(csv, bin);
-        binarioNaTela(arquivo_saida);
+        escreve_registros_no_bin(csv, bin); // O binário é fechado dentro da funçaõ para que possa chamar binarioNaTela
+        binarioNaTela(arquivo_saida); // O binário é fechado dentro da função
         break;
 
-    case 2:                           // Imprimir arquivo binário
-        scanf("%s", arquivo_entrada); // Lê o arquivo binário
-        // Abre o arquivo para leitura
+    // Funcionalidade 1: imprimir registros do binário
+    case 2:
+        scanf("%s", arquivo_entrada);
+
+        // Abre o binário para leitura
         FILE *bin2 = fopen(arquivo_entrada, "rb");
         if (bin2 == NULL)
         {
             printf("Falha no processamento do arquivo.\n");
             return 0;
         }
-        imprime_bin(bin2); // imprime o conteúdo do arquivo
+        imprime_bin(bin2); // O binário é fechado dentro da função
         break;
-
-    case 3: // Filtrar registros
+        
+    // Funcionalidade 3: filtrar registros
+    case 3: 
         int num_buscas;
         scanf("%s", arquivo_entrada);
         scanf("%d", &num_buscas);
-        chama_match_bin(arquivo_entrada, num_buscas); // execução das buscas
+        chama_match_bin(arquivo_entrada, num_buscas); // O binário é fechado dentro da função
         break;
 
     default:

@@ -1,20 +1,39 @@
-#include "parse_csv.h"
-#include "csv_to_bin.h"
+/*******************************************************************************
+ *                                                                             *
+ *                     SCC0215 - Organização de Arquivos                       *
+ *                                                                             *
+ *                             Trabalho Prático                                *
+ *                                                                             *
+ * Professora: Cristina Dutra de Aguiar                                        *
+ *                                                                             *
+ * Aluno: Yan Trindade Meireles - 13680035                                     *
+ *                                                                             *
+ * Aluno: Rafael Perez Carmanhani - 15485420                                   *
+ *                                                                             *
+ *******************************************************************************/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "parse_csv.h"
+#include "csv_to_bin.h"
 
 #define LIXO_STRING "$"
 #define LIXO_INT -1
 #define LIXO_FLOAT -1.0
 #define DELIM_CAMPO '|'
 
-// Inicializa a estrutura do header do arquivo binário
+/*
+ * Inicializa a struct REG_HEADER, que armazena dados do header do registro.
+ * Retorno:
+ *  ponteiro para o header do registro ou NULL em caso de erro.
+ */
 REG_HEADER *inicializa_header_registro()
 {
-    // aloca de memória para o header
     REG_HEADER *header = (REG_HEADER *)calloc(1, sizeof(REG_HEADER));
     if (header == NULL)
     {
@@ -22,14 +41,14 @@ REG_HEADER *inicializa_header_registro()
         return NULL;
     }
 
-    // Configura valores padrão do header
+    // Inicializa valores padrão do header, antes de modificações
     header->status = '0';       // '0' = inconsistente, '1' = consistente
     header->topo = -1;          // Topo da pilha de registros removidos
     header->proxByteOffset = 0; // Próxima posição disponível no arquivo
     header->nroRegArq = 0;      // Número de registros no arquivo
     header->nroRegRem = 0;      // Número de registros removidos
 
-    // Copia descrições dos campos
+    // Carrega descrições dos campos
     memcpy(header->descreveIdentificador, "IDENTIFICADOR DO ATAQUE", 23);
     memcpy(header->descreveYear, "ANO EM QUE O ATAQUE OCORREU", 27);
     memcpy(header->descreveFinancialLoss, "PREJUIZO CAUSADO PELO ATAQUE", 28);
@@ -44,7 +63,13 @@ REG_HEADER *inicializa_header_registro()
     return header;
 }
 
-// Escreve o header no arquivo binário
+/*
+ * Escreve o header no arquivo binário.
+ * Parâmetro:
+ *  bin - ponteiro para o arquivo binário
+ * Retorno:
+ *  true se a operação for bem-sucedida, false caso contrário.
+ */
 bool escreve_header_no_bin(FILE *bin)
 {
     REG_HEADER *header = inicializa_header_registro();
@@ -74,10 +99,16 @@ bool escreve_header_no_bin(FILE *bin)
     return true;
 }
 
-// Calcula o tamanho do registro binário
+/*
+ * Calcula o tamanho do registro, considerando os campos fixos e variáveis.
+ * Parâmetro:
+ *  linha - ponteiro para a linha CSV
+ * Retorno:
+ *  tamanho do registro em bytes.
+ */
 int calcula_tamanho_registro(LINHA_CSV *linha)
 {
-    int tamanho = 0;                  // inicializa o tamanho
+    int tamanho = 0;                  // Inicializa o tamanho
     tamanho += sizeof(long long int); // Campo 'prox'
     tamanho += sizeof(int);           // Campo 'idAttack'
     tamanho += sizeof(int);           // Campo 'year'
@@ -106,7 +137,13 @@ int calcula_tamanho_registro(LINHA_CSV *linha)
     return tamanho;
 }
 
-// Converte uma linha CSV para registro binário
+/*
+ * Converte uma linha do arquivo CSV para um registro de dados no binário.
+ * Parâmetro:
+ *  csv - ponteiro para o arquivo CSV
+ * Retorno:
+ *  ponteiro para o registro binário ou NULL em caso de erro.
+ */
 REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv)
 {
     REG_DADOS *reg_dados = (REG_DADOS *)calloc(1, sizeof(REG_DADOS));
@@ -116,7 +153,7 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv)
         return NULL;
     }
 
-    // leitura da linha do arquivo csv
+    // Leitura da linha do arquivo csv
     LINHA_CSV *linha = le_linha_csv(csv);
     if (linha == NULL)
     {
@@ -124,20 +161,19 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv)
         return NULL;
     }
 
-    // Copia dados fixos
+    // Copia dados fixos do CSV para o registro binário
     reg_dados->removido = '0'; // 0 = não removido
-    reg_dados->prox = -1;      // Próximo registro (lista encadeada)
+    reg_dados->prox = -1;
     reg_dados->tamanhoRegistro = calcula_tamanho_registro(linha);
     reg_dados->idAttack = linha->idAttack;
     reg_dados->year = linha->year;
     reg_dados->financialLoss = linha->financialLoss;
 
-    // Aloca e copia strings (campos variáveis)
+    // Aloca e copia campos variáveis do CSV para o registro binário
     reg_dados->country = malloc(strlen(linha->country));
     if (reg_dados->country == NULL)
     {
         printf("Falha no processamento do arquivo.\n");
-        // Libera memória em caso de erro
         free(reg_dados);
         return NULL;
     }
@@ -180,27 +216,41 @@ REG_DADOS *converte_linha_csv_para_registro_bin(FILE *csv)
     return reg_dados;
 }
 
-// Atualiza o header do arquivo binário
+/*
+ * Atualiza o header do arquivo binário com o novo número de registros e o próximo byte offset.
+ * Parâmetros:
+ *  bin - ponteiro para o arquivo binário
+ *  nroRegArq - número de registros no arquivo
+ *  proxByteOffset - próximo byte offset disponível
+ */
 void atualiza_header(FILE *bin, int nroRegArq, long long int proxByteOffset)
 {
-    fseek(bin, 0, SEEK_SET); // posiciona no início do arquivo
+    fseek(bin, 0, SEEK_SET); // Partimos do início do arquivo
 
-    char status = '1'; // marca como consistente
+    // Marca como consistente
+    char status = '1'; 
     fwrite(&status, sizeof(char), 1, bin);
 
     // Pular o campo 'topo' que já está definido
     fseek(bin, sizeof(long long int), SEEK_CUR);
 
-    // Escrever o próximo byte disponível
+    // Escreve no header o próximo byte offset disponível
     fwrite(&proxByteOffset, sizeof(long long int), 1, bin);
 
-    // Escrever o número de registros
+    // Escreve no header o número de registros
     fwrite(&nroRegArq, sizeof(int), 1, bin);
 
     return;
 }
 
-// Processa arquivo CSV e gera arquivo binário
+/*
+ * Escreve os registros do arquivo CSV no arquivo binário.
+ * Parâmetros:
+ *  csv - ponteiro para o arquivo CSV
+ *  bin - ponteiro para o arquivo binário
+ * Retorno:
+ *  true se a operação for bem-sucedida, false caso contrário.
+ */
 bool escreve_registros_no_bin(FILE *csv, FILE *bin)
 {
 
@@ -227,8 +277,8 @@ bool escreve_registros_no_bin(FILE *csv, FILE *bin)
         if (memcmp(reg_dados->country, LIXO_STRING, strlen(LIXO_STRING)) != 0)
         {
             fputc('1', bin);                                                // Codigo do campo country
-            fwrite(reg_dados->country, strlen(reg_dados->country), 1, bin); // escreve o country
-            fputc(DELIM_CAMPO, bin);                                        // coloca o delimitador
+            fwrite(reg_dados->country, strlen(reg_dados->country), 1, bin); // Escreve o country
+            fputc(DELIM_CAMPO, bin);                                        // Escreve o delimitador
         }
 
         if (memcmp(reg_dados->attackType, LIXO_STRING, strlen(LIXO_STRING)) != 0)
@@ -252,20 +302,22 @@ bool escreve_registros_no_bin(FILE *csv, FILE *bin)
             fputc(DELIM_CAMPO, bin);
         }
 
-        // Libera memória do registro
         free(reg_dados->country);
         free(reg_dados->attackType);
         free(reg_dados->targetIndustry);
         free(reg_dados->defenseMechanism);
         free(reg_dados);
 
+        // Incrementa o número de registros
         nroRegArq++;
     }
 
-    long long int proxOffset = ftell(bin); // Atualiza o próximo byte offset
+    // Atualiza o próximo byte offset
+    long long int proxOffset = ftell(bin);
 
     // Atualiza o header com o número de registros e o próximo byte offset
     atualiza_header(bin, nroRegArq, proxOffset);
+    
     fclose(bin);
     fclose(csv);
     return true;

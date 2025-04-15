@@ -7,6 +7,19 @@
 
 #define DELIMITADOR ','
 
+
+/**
+ * Estrutura para armazenar os dados de cada linha do CSV
+ * (idAttack, year, financialLoss, country, attackType, targetIndustry, defenseMechanism)
+ * 
+ * idAttack: ID do ataque
+ * year: Ano do ataque
+ * financialLoss: Perda financeira
+ * country: País onde ocorreu o ataque
+ * attackType: Tipo de ataque
+ * targetIndustry: Indústria alvo do ataque
+ * defenseMechanism: Mecanismo de defesa utilizado
+ **/
 typedef struct linha_csv {
     int idAttack;
     int year;

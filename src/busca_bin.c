@@ -1,74 +1,56 @@
-#include "parse_csv.h"
-#include "csv_to_bin.h"
-#include "imprime_bin.h"
+/*******************************************************************************
+ *                                                                             *
+ *                     SCC0215 - Organização de Arquivos                       *
+ *                                                                             *
+ *                             Trabalho Prático                                *
+ *                                                                             *
+ * Professora: Cristina Dutra de Aguiar                                        *
+ *                                                                             *
+ * Aluno: Yan Trindade Meireles - 13680035                                     *
+ *                                                                             *
+ * Aluno: Rafael Perez Carmanhani - 15485420                                   *
+ *                                                                             *
+ *******************************************************************************/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include "parse_csv.h"
+#include "csv_to_bin.h"
+#include "imprime_bin.h"
 
-// Função fornecida pelo monitor
-void scan_quote_string(char *str)
-{
+void scan_quote_string(char *str); // Função fornecida pelo monitor
 
-    /*
-     *	Use essa função para ler um campo string delimitado entre aspas (").
-     *	Chame ela na hora que for ler tal campo. Por exemplo:
-     *
-     *	A entrada está da seguinte forma:
-     *		nomeDoCampo "MARIA DA SILVA"
-     *
-     *	Para ler isso para as strings já alocadas str1 e str2 do seu programa, você faz:
-     *		scanf("%s", str1); // Vai salvar nomeDoCampo em str1
-     *		scan_quote_string(str2); // Vai salvar MARIA DA SILVA em str2 (sem as aspas)
-     *
-     */
-
-    char R;
-
-    while ((R = getchar()) != EOF && isspace(R))
-        ; // ignorar espaços, \r, \n...
-
-    if (R == 'N' || R == 'n')
-    { // campo NULO
-        getchar();
-        getchar();
-        getchar();       // ignorar o "ULO" de NULO.
-        strcpy(str, ""); // copia string vazia
-    }
-    else if (R == '\"')
-    {
-        if (scanf("%[^\"]", str) != 1)
-        { // ler até o fechamento das aspas
-            strcpy(str, "");
-        }
-        getchar(); // ignorar aspas fechando
-    }
-    else if (R != EOF)
-    { // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
-        str[0] = R;
-        scanf("%s", &str[1]);
-    }
-    else
-    { // EOF
-        strcpy(str, "");
-    }
-}
-
+/*
+ * Busca registros que correspondem a critérios de busca especificados pelo usuário, a função lê os registros
+ * do arquivo binário e compara os campos especificados com os valores fornecidos. Imprime os registros encontrados ou, em
+ * caso de não encontrar nenhum, imprime uma mensagem padrão.
+ * Parâmetros:
+ *  bin - ponteiro para o arquivo binário
+ *  num_campos - número de campos a serem buscados
+ *  nome_campo - array de strings com os nomes dos campos
+ *  valor_campo - array de strings com os valores dos campos
+ */
 void match_registro(FILE *bin, int num_campos, char **nome_campo, char **valor_campo)
 {
-    // Pula o cabeçalho
+    // Pula o cabeçalho do binário
     fseek(bin, 276, SEEK_SET);
 
-    REG_DADOS *reg_dados = get_registro(bin);
+    // Inicializa ponteiro para o registro e variáveis de controle
+    REG_DADOS *reg_dados = get_registro(bin); 
     bool match = false;
     bool found = false;
 
     // Processa cada registro do arquivo
     while (ftell(bin) != -1 && reg_dados != NULL)
     {
-        match = true; // Assume que encontrou um match até provar o contrário
+        // Assume que encontrou um match até provar o contrário
+        match = true;
 
         // Verificar cada campo do critério de busca
         for (int i = 0; i < num_campos; i++)
@@ -134,6 +116,7 @@ void match_registro(FILE *bin, int num_campos, char **nome_campo, char **valor_c
             }
         }
 
+        // Se todos os critérios de busca foram atendidos, imprime o registro
         if (match)
         {
             imprime_registro_bin(reg_dados);
@@ -143,6 +126,7 @@ void match_registro(FILE *bin, int num_campos, char **nome_campo, char **valor_c
         reg_dados = get_registro(bin);
     }
 
+    // Se não encontrou nenhum registro correspondente, imprime mensagem padrão
     if (!found)
     {
         printf("Registro inexistente.\n\n");
@@ -152,7 +136,12 @@ void match_registro(FILE *bin, int num_campos, char **nome_campo, char **valor_c
     return;
 }
 
-/* Gerencia o processo de busca no arquivo binário */
+/*
+ * Lê critérios de busca do usuário e chama a função de busca no arquivo binário aplicando cada filtro especificado.
+ * Parâmetro:
+ *  nome_arquivo - nome do arquivo binário
+ *  num_buscas - número de buscas a serem realizadas
+ */
 void chama_match_bin(char *nome_arquivo, int num_buscas)
 {
     // Abre arquivo binário
@@ -200,7 +189,7 @@ void chama_match_bin(char *nome_arquivo, int num_buscas)
         }
     }
 
-    // Agora realizar todas as buscas
+    // Agora realizar todas as buscas chamando a função match_registro
     for (int i = 0; i < num_buscas; i++)
     {
         match_registro(bin, qtd_campos[i], nomes_campos[i], valores_campos[i]);
@@ -217,9 +206,61 @@ void chama_match_bin(char *nome_arquivo, int num_buscas)
         free(nomes_campos[i]);
         free(valores_campos[i]);
     }
+
     free(qtd_campos);
     free(nomes_campos);
     free(valores_campos);
 
+    // Fecha o arquivo binário
     fclose(bin);
+    return;
+}
+
+
+// Função fornecida pelo monitor
+void scan_quote_string(char *str)
+{
+
+    /*
+     *	Use essa função para ler um campo string delimitado entre aspas (").
+     *	Chame ela na hora que for ler tal campo. Por exemplo:
+     *
+     *	A entrada está da seguinte forma:
+     *		nomeDoCampo "MARIA DA SILVA"
+     *
+     *	Para ler isso para as strings já alocadas str1 e str2 do seu programa, você faz:
+     *		scanf("%s", str1); // Vai salvar nomeDoCampo em str1
+     *		scan_quote_string(str2); // Vai salvar MARIA DA SILVA em str2 (sem as aspas)
+     *
+     */
+
+    char R;
+
+    while ((R = getchar()) != EOF && isspace(R))
+        ; // ignorar espaços, \r, \n...
+
+    if (R == 'N' || R == 'n')
+    { // campo NULO
+        getchar();
+        getchar();
+        getchar();       // ignorar o "ULO" de NULO.
+        strcpy(str, ""); // copia string vazia
+    }
+    else if (R == '\"')
+    {
+        if (scanf("%[^\"]", str) != 1)
+        { // ler até o fechamento das aspas
+            strcpy(str, "");
+        }
+        getchar(); // ignorar aspas fechando
+    }
+    else if (R != EOF)
+    { // vc tá tentando ler uma string que não tá entre aspas! Fazer leitura normal %s então, pois deve ser algum inteiro ou algo assim...
+        str[0] = R;
+        scanf("%s", &str[1]);
+    }
+    else
+    { // EOF
+        strcpy(str, "");
+    }
 }
