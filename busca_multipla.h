@@ -41,14 +41,17 @@ bool satisfaz_criterios(REG_DADOS *registro, BUSCA_MULTIPLA *busca);
 void libera_busca_multipla(BUSCA_MULTIPLA *busca);
 
 /*
- * Busca usando índice árvore-B quando idAttack está nos critérios
+ * Realiza busca múltipla SEMPRE usando o arquivo de índices.
+ * Se idAttack está nos critérios, faz busca indexada O(log n).
+ * Caso contrário, percorre a árvore-B em ordem (in-order traversal) O(n).
  */
 bool busca_com_indice(FILE *arquivo_dados, FILE *arquivo_indice, BUSCA_MULTIPLA *busca);
 
 /*
- * Busca sequencial quando idAttack não está nos critérios
+ * Busca usando in-order traversal da árvore-B (quando não há idAttack nos critérios).
+ * SEMPRE usa o arquivo de índices.
  */
-bool busca_sequencial(FILE *arquivo_dados, BUSCA_MULTIPLA *busca);
+bool busca_com_in_order(FILE *arquivo_dados, FILE *arquivo_indice, BUSCA_MULTIPLA *busca);
 
 // Funções auxiliares
 REG_DADOS* le_registro_completo(FILE *arquivo, long long int offset);

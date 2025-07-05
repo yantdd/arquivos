@@ -13,4 +13,4 @@ void match_registro_remove(FILE *bin, REG_HEADER *header, int num_campos, char *
 void chama_match_remove_bin(char *nome_arquivo, int num_buscas);
 void scan_quote_string(char *str);
 
-#endif // REMOVE_REG_BIN_H 
+#endif

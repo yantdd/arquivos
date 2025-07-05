@@ -39,6 +39,13 @@ typedef struct resultado_insercao {
     int rrn_promovido;    // RRN do novo nó criado
 } RESULTADO_INSERCAO;
 
+// Estrutura para in-order traversal
+typedef struct lista_chaves {
+    CHAVE_PTR *chaves;    // Array de chaves e ponteiros ordenados
+    int num_chaves;       // Número de chaves na lista
+    int capacidade;       // Capacidade do array
+} LISTA_CHAVES;
+
 // Funções básicas da árvore-B
 CABECALHO_INDICE* inicializa_cabecalho_indice();
 NO_ARVORE* inicializa_no();
@@ -53,6 +60,10 @@ bool insere_arvore_b(FILE *indice, int chave, long long int ptr);
 bool remove_arvore_b(FILE *indice, int chave);
 bool atualiza_ponteiro_arvore_b(FILE *indice, int chave, long long int novo_ptr);
 
+// Função para in-order traversal
+LISTA_CHAVES* in_order_traversal(FILE *indice);
+void libera_lista_chaves(LISTA_CHAVES *lista);
+
 // Funções auxiliares
 int busca_posicao_chave(NO_ARVORE *no, int chave);
 void split_no(NO_ARVORE *no_original, NO_ARVORE *novo_no, int chave_nova, long long int ptr_novo, int filho_direito, int *chave_promovida, long long int *ptr_promovido);
@@ -62,4 +73,4 @@ void insere_chave_no(NO_ARVORE *no, int chave, long long int ptr, int filho_dire
 bool cria_arquivo_indice(char *nome_arquivo);
 
 
-#endif // ARVORE_B_H 
+#endif

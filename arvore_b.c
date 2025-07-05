@@ -517,22 +517,6 @@ bool atualiza_ponteiro_arvore_b(FILE *indice, int chave, long long int novo_ptr)
 }
 
 /*
- * Placeholder para remoção (implementação completa seria mais complexa).
- * Funcionalidade não implementada no escopo do trabalho.
- * Parâmetros:
- *  indice - ponteiro para o arquivo de índice
- *  chave - chave a ser removida
- * Retorno:
- *  sempre false (não implementado)
- */
-bool remove_arvore_b(FILE *indice, int chave) {
-    // Implementação simplificada - apenas marca como não implementada
-    (void)indice; // Suprime warning de parâmetro não usado
-    (void)chave;  // Suprime warning de parâmetro não usado
-    return false;
-}
-
-/*
  * Cria um arquivo de índice vazio com cabeçalho inicializado.
  * Prepara a estrutura básica para receber inserções posteriores.
  * Parâmetro:
@@ -552,5 +536,99 @@ bool cria_arquivo_indice(char *nome_arquivo) {
     fclose(indice);
     free(cab);
     return true;
+}
+
+/*
+ * Função auxiliar recursiva para in-order traversal da árvore-B.
+ * Percorre a árvore em ordem crescente das chaves.
+ * Parâmetros:
+ *  indice - ponteiro para o arquivo de índice
+ *  rrn - RRN do nó atual
+ *  lista - lista onde serão adicionadas as chaves
+ */
+void in_order_recursivo(FILE *indice, int rrn, LISTA_CHAVES *lista) {
+    if (rrn == -1) return; // Nó nulo
+    
+    NO_ARVORE *no = le_no(indice, rrn);
+    if (no == NULL) return;
+    
+    // Percorre o nó em ordem: filho_esquerdo, chave, filho_direito
+    for (int i = 0; i < no->nroChaves; i++) {
+        // Visita filho esquerdo
+        in_order_recursivo(indice, no->P[i], lista);
+        
+        // Adiciona a chave atual à lista
+        if (lista->num_chaves >= lista->capacidade) {
+            lista->capacidade *= 2;
+            lista->chaves = realloc(lista->chaves, lista->capacidade * sizeof(CHAVE_PTR));
+            if (lista->chaves == NULL) {
+                free(no);
+                return;
+            }
+        }
+        
+        lista->chaves[lista->num_chaves].chave = no->dados[i].chave;
+        lista->chaves[lista->num_chaves].ptr = no->dados[i].ptr;
+        lista->num_chaves++;
+    }
+    
+    // Visita o último filho direito
+    in_order_recursivo(indice, no->P[no->nroChaves], lista);
+    
+    free(no);
+}
+
+/*
+ * Realiza in-order traversal da árvore-B, retornando todas as chaves em ordem crescente.
+ * Utilizada para buscar registros quando não há idAttack nos critérios.
+ * Parâmetro:
+ *  indice - ponteiro para o arquivo de índice
+ * Retorno:
+ *  ponteiro para lista ordenada de chaves ou NULL em caso de erro
+ */
+LISTA_CHAVES* in_order_traversal(FILE *indice) {
+    CABECALHO_INDICE *cab = malloc(sizeof(CABECALHO_INDICE));
+    le_cabecalho_indice(indice, cab);
+    
+    if (cab->status != '1') {
+        free(cab);
+        return NULL;
+    }
+    
+    LISTA_CHAVES *lista = malloc(sizeof(LISTA_CHAVES));
+    if (lista == NULL) {
+        free(cab);
+        return NULL;
+    }
+    
+    lista->capacidade = 100; // Capacidade inicial
+    lista->chaves = malloc(lista->capacidade * sizeof(CHAVE_PTR));
+    if (lista->chaves == NULL) {
+        free(lista);
+        free(cab);
+        return NULL;
+    }
+    
+    lista->num_chaves = 0;
+    
+    // Inicia o percurso in-order pela raiz
+    in_order_recursivo(indice, cab->noRaiz, lista);
+    
+    free(cab);
+    return lista;
+}
+
+/*
+ * Libera a memória alocada para uma lista de chaves.
+ * Parâmetro:
+ *  lista - ponteiro para a lista a ser liberada
+ */
+void libera_lista_chaves(LISTA_CHAVES *lista) {
+    if (lista != NULL) {
+        if (lista->chaves != NULL) {
+            free(lista->chaves);
+        }
+        free(lista);
+    }
 }
 

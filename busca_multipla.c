@@ -2,7 +2,7 @@
  *                                                                             *
  *                     SCC0215 - Organização de Arquivos                       *
  *                                                                             *
- *                     Funcionalidade 8 - Busca Múltipla                      *
+ *                     Funcionalidade 8 - Busca Múltipla                       *
  *                                                                             *
  * Professora: Cristina Dutra de Aguiar                                        *
  *                                                                             *
@@ -98,14 +98,13 @@ bool executa_busca_multipla(char *nome_arquivo_dados, char *nome_arquivo_indice,
         
         bool encontrou = false;
         
-        // ESTRATÉGIA DE BUSCA INTELIGENTE:
-        // Determina estratégia de busca baseada na presença de idAttack
+        // NOVA ESTRATÉGIA: SEMPRE usar o arquivo de índices
         // COM idAttack: busca indexada O(log n) - mais eficiente
-        // SEM idAttack: busca sequencial O(n) - única opção disponível
+        // SEM idAttack: busca com in-order traversal O(n) - mantém uso do índice
         if (tem_id_attack) {
             encontrou = busca_com_indice(arquivo_dados, arquivo_indice, &busca);
         } else {
-            encontrou = busca_sequencial(arquivo_dados, &busca);
+            encontrou = busca_com_in_order(arquivo_dados, arquivo_indice, &busca);
         }
         
         // Se não encontrou registros, imprime mensagem padrão
@@ -196,15 +195,9 @@ REG_DADOS* le_registro_completo(FILE *arquivo, long long int offset) {
 }
 
 /*
- * Realiza busca otimizada usando índice árvore-B quando idAttack está presente nos critérios.
- * Esta função oferece performance O(log n) ao usar o índice para localizar diretamente
- * o registro, em vez de percorrer todo o arquivo.
- * Parâmetros:
- *  arquivo_dados - ponteiro para o arquivo de dados
- *  arquivo_indice - ponteiro para o arquivo de índice
- *  busca - estrutura contendo os critérios de busca
- * Retorno:
- *  true se encontrou registro que satisfaz todos os critérios, false caso contrário
+ * Realiza busca múltipla SEMPRE usando o arquivo de índices.
+ * Se idAttack está nos critérios, faz busca indexada O(log n).
+ * Caso contrário, percorre a árvore-B em ordem (in-order traversal) O(n).
  */
 bool busca_com_indice(FILE *arquivo_dados, FILE *arquivo_indice, BUSCA_MULTIPLA *busca) {
     // Encontra o valor do idAttack nos critérios
@@ -252,40 +245,38 @@ bool busca_com_indice(FILE *arquivo_dados, FILE *arquivo_indice, BUSCA_MULTIPLA 
 }
 
 /*
- * Realiza busca sequencial quando idAttack não está presente nos critérios.
- * Percorre todos os registros do arquivo verificando se satisfazem os critérios.
- * Performance O(n), usada quando busca indexada não é possível.
- * Parâmetros:
- *  arquivo_dados - ponteiro para o arquivo de dados
- *  busca - estrutura contendo os critérios de busca
- * Retorno:
- *  true se encontrou pelo menos um registro, false caso contrário
+ * Busca usando in-order traversal da árvore-B (quando não há idAttack nos critérios).
+ * SEMPRE usa o arquivo de índices.
  */
-bool busca_sequencial(FILE *arquivo_dados, BUSCA_MULTIPLA *busca) {
-    // Pula o cabeçalho do arquivo (276 bytes)
-    fseek(arquivo_dados, 276, SEEK_SET);
+bool busca_com_in_order(FILE *arquivo_dados, FILE *arquivo_indice, BUSCA_MULTIPLA *busca) {
+    // Obtém lista ordenada de todas as chaves via in-order traversal
+    LISTA_CHAVES *lista = in_order_traversal(arquivo_indice);
+    if (lista == NULL) return false;
     
     bool encontrou_algum = false;
     
-    // Percorre todos os registros sequencialmente
-    REG_DADOS *registro = get_registro(arquivo_dados);
-    while (registro != NULL) {
-        // Verifica apenas registros não removidos
-        if (registro->removido == '0' && satisfaz_criterios(registro, busca)) {
+    // Percorre todos os registros na ordem das chaves
+    for (int i = 0; i < lista->num_chaves; i++) {
+        // Lê o registro usando o ponteiro do índice
+        REG_DADOS *registro = le_registro_completo(arquivo_dados, lista->chaves[i].ptr);
+        
+        if (registro != NULL && registro->removido == '0' && satisfaz_criterios(registro, busca)) {
             imprime_registro_bin(registro);
             encontrou_algum = true;
         } else {
             // Libera memória apenas se não imprimiu (pois imprime_registro_bin já libera)
-            if (registro->country) free(registro->country);
-            if (registro->attackType) free(registro->attackType);
-            if (registro->targetIndustry) free(registro->targetIndustry);
-            if (registro->defenseMechanism) free(registro->defenseMechanism);
-            free(registro);
+            if (registro) {
+                if (registro->country) free(registro->country);
+                if (registro->attackType) free(registro->attackType);
+                if (registro->targetIndustry) free(registro->targetIndustry);
+                if (registro->defenseMechanism) free(registro->defenseMechanism);
+                free(registro);
+            }
         }
-        
-        // Lê próximo registro
-        registro = get_registro(arquivo_dados);
     }
+    
+    // Libera a lista de chaves
+    libera_lista_chaves(lista);
     
     return encontrou_algum;
 } 

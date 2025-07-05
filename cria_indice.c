@@ -2,7 +2,7 @@
  *                                                                             *
  *                     SCC0215 - Organização de Arquivos                       *
  *                                                                             *
- *                    Funcionalidade 7 - Criar Índice                         *
+ *                    Funcionalidade 7 - Criar Índice                          *
  *                                                                             *
  * Professora: Cristina Dutra de Aguiar                                        *
  *                                                                             *

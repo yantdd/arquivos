@@ -2,7 +2,7 @@
  *                                                                             *
  *                     SCC0215 - Organização de Arquivos                       *
  *                                                                             *
- *                   Funcionalidade 10 - Inserção com Índice                  *
+ *                   Funcionalidade 10 - Inserção com Índice                   *
  *                                                                             *
  * Professora: Cristina Dutra de Aguiar                                        *
  *                                                                             *

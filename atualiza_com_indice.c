@@ -2,7 +2,7 @@
  *                                                                             *
  *                     SCC0215 - Organização de Arquivos                       *
  *                                                                             *
- *                Funcionalidade 11 - Atualização com Índice                  *
+ *                Funcionalidade 11 - Atualização com Índice                   *
  *                                                                             *
  * Professora: Cristina Dutra de Aguiar                                        *
  *                                                                             *
@@ -17,8 +17,8 @@
 #include "insere_reg_bin.h"
 
 /*
- * Executa atualizações de registros utilizando índice árvore-B para otimização
- * quando possível. Escolhe automaticamente entre busca indexada e sequencial
+ * Executa atualizações de registros utilizando índice árvore-B. 
+ * Escolhe automaticamente entre busca indexada e sequencial
  * baseado na presença de idAttack nos critérios de busca. Implementa estratégia
  * First Fit para reutilização de espaços removidos.
  * Parâmetros:
@@ -122,18 +122,17 @@ bool executa_atualizacoes_com_indice(char *nome_arquivo_dados, char *nome_arquiv
             }
         }
         
-        // ESTRATÉGIA DE BUSCA INTELIGENTE:
-        // Verifica presença de idAttack nos critérios
+        // NOVA ESTRATÉGIA: SEMPRE usar o arquivo de índices
         // COM idAttack: utiliza busca indexada O(log n)
-        // SEM idAttack: utiliza busca sequencial O(n)
+        // SEM idAttack: utiliza in-order traversal O(n) - mantém uso do índice
         if (tem_id_attack) {
             atualiza_com_busca_indice(arquivo_dados, arquivo_indice, header, &busca, 
                                      num_campos_atualizacao, nomes_campos_atualizacao, 
                                      valores_campos_atualizacao);
         } else {
-            atualiza_com_busca_sequencial(arquivo_dados, header, &busca, 
-                                         num_campos_atualizacao, nomes_campos_atualizacao, 
-                                         valores_campos_atualizacao);
+            atualiza_com_in_order(arquivo_dados, arquivo_indice, header, &busca, 
+                                 num_campos_atualizacao, nomes_campos_atualizacao, 
+                                 valores_campos_atualizacao);
         }
         
         // Libera memória da busca
@@ -163,24 +162,11 @@ bool executa_atualizacoes_com_indice(char *nome_arquivo_dados, char *nome_arquiv
 }
 
 /*
- * Atualiza registros encontrados via busca otimizada com índice árvore-B.
- * Utiliza o índice para localizar rapidamente o registro pelo idAttack,
- * oferecendo performance O(log n) em vez de O(n) da busca sequencial.
- * Implementa atualização in-place ou remoção+inserção conforme tamanho do registro.
- * Parâmetros:
- *  arquivo_dados - ponteiro para arquivo de dados
- *  arquivo_indice - ponteiro para arquivo de índice
- *  header - ponteiro para header do arquivo de dados
- *  busca - critérios de busca incluindo idAttack
- *  num_campos_atualizacao - número de campos a atualizar
- *  nomes_campos_atualizacao - nomes dos campos a atualizar
- *  valores_campos_atualizacao - valores dos campos a atualizar
- * Retorno:
- *  true se encontrou e atualizou registros, false caso contrário
+ * Atualiza registros SEMPRE usando o arquivo de índices.
+ * Se idAttack está nos critérios, faz atualização indexada O(log n).
+ * Caso contrário, percorre a árvore-B em ordem (in-order traversal) O(n).
  */
-bool atualiza_com_busca_indice(FILE *arquivo_dados, FILE *arquivo_indice, REG_HEADER *header, 
-                              BUSCA_MULTIPLA *busca, int num_campos_atualizacao, 
-                              char **nomes_campos_atualizacao, char **valores_campos_atualizacao) {
+bool atualiza_com_busca_indice(FILE *arquivo_dados, FILE *arquivo_indice, REG_HEADER *header, BUSCA_MULTIPLA *busca, int num_campos_atualizacao, char **nomes_campos_atualizacao, char **valores_campos_atualizacao) {
     // Encontra o valor do idAttack nos critérios
     int id_attack = -1;
     for (int i = 0; i < busca->num_criterios; i++) {
@@ -284,44 +270,32 @@ bool atualiza_com_busca_indice(FILE *arquivo_dados, FILE *arquivo_indice, REG_HE
 }
 
 /*
- * Atualiza registros encontrados via busca sequencial quando idAttack não está
- * presente nos critérios. Implementa estratégia de duas passadas para garantir
- * processamento correto de todos os registros que atendem aos critérios.
- * Performance O(n), usada quando busca indexada não é possível.
- * Parâmetros:
- *  arquivo_dados - ponteiro para arquivo de dados
- *  header - ponteiro para header do arquivo de dados
- *  busca - critérios de busca sem idAttack
- *  num_campos_atualizacao - número de campos a atualizar
- *  nomes_campos_atualizacao - nomes dos campos a atualizar
- *  valores_campos_atualizacao - valores dos campos a atualizar
- * Retorno:
- *  true se encontrou e atualizou registros, false caso contrário
+ * Atualiza registros encontrados via in-order traversal da árvore-B (quando não há idAttack).
+ * SEMPRE usa o arquivo de índices.
  */
-bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header, 
-                                  BUSCA_MULTIPLA *busca, int num_campos_atualizacao, 
-                                  char **nomes_campos_atualizacao, char **valores_campos_atualizacao) {
+bool atualiza_com_in_order(FILE *arquivo_dados, FILE *arquivo_indice, REG_HEADER *header, BUSCA_MULTIPLA *busca, int num_campos_atualizacao, char **nomes_campos_atualizacao, char **valores_campos_atualizacao) {
+    
+    // Obtém lista ordenada de todas as chaves via in-order traversal
+    LISTA_CHAVES *lista = in_order_traversal(arquivo_indice);
+    if (lista == NULL) return false;
     
     // Array para armazenar posições dos registros que fazem match
     long long *posicoes_match = NULL;
     int count_matches = 0;
-    int capacity_matches = 10; // Capacidade inicial
+    int capacity_matches = 10;
     
     posicoes_match = (long long *)malloc(capacity_matches * sizeof(long long));
-    if (!posicoes_match) return false;
+    if (!posicoes_match) {
+        libera_lista_chaves(lista);
+        return false;
+    }
     
-    // PRIMEIRA PASSADA: Identificar todas as posições dos registros que fazem match
-    fseek(arquivo_dados, 276, SEEK_SET);
-    
-    // Percorre todos os registros até proxByteOffset
-    while (ftell(arquivo_dados) < header->proxByteOffset) {
-        long long int offset_atual = ftell(arquivo_dados);
+    // PRIMEIRA PASSADA: Identificar registros que fazem match usando in-order traversal
+    for (int i = 0; i < lista->num_chaves; i++) {
+        long long int offset_atual = lista->chaves[i].ptr;
         
-        REG_DADOS *registro = get_registro(arquivo_dados);
-        if (registro == NULL) break;
-        
-        // Salva o tamanho antes de potencialmente liberar
-        int tamanho_registro = registro->tamanhoRegistro;
+        REG_DADOS *registro = le_registro_completo(arquivo_dados, offset_atual);
+        if (registro == NULL) continue;
         
         // Verifica se não está removido e satisfaz critérios
         if (registro->removido == '0' && satisfaz_criterios(registro, busca)) {
@@ -335,6 +309,7 @@ bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header,
                     if (registro->targetIndustry) free(registro->targetIndustry);
                     if (registro->defenseMechanism) free(registro->defenseMechanism);
                     free(registro);
+                    libera_lista_chaves(lista);
                     return false;
                 }
             }
@@ -347,15 +322,14 @@ bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header,
         if (registro->targetIndustry) free(registro->targetIndustry);
         if (registro->defenseMechanism) free(registro->defenseMechanism);
         free(registro);
-        
-        // Vai para próximo registro usando o tamanho salvo
-        fseek(arquivo_dados, offset_atual + tamanho_registro + 5, SEEK_SET);
     }
+    
+    // Libera a lista de chaves
+    libera_lista_chaves(lista);
     
     bool encontrou = (count_matches > 0);
     
     // SEGUNDA PASSADA: Aplicar atualizações em ordem reversa
-    // (para evitar problemas de posicionamento durante atualizações)
     for (int i = count_matches - 1; i >= 0; i--) {
         fseek(arquivo_dados, posicoes_match[i], SEEK_SET);
         REG_DADOS *registro = get_registro(arquivo_dados);
@@ -388,7 +362,18 @@ bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header,
                     header->nroRegArq--;
                     header->nroRegRem++;
                     
-                    match_insere_bin(arquivo_dados, header, reg_atualizado);
+                    // Insere novo registro
+                    long long int nova_posicao = match_insere_bin_com_offset(arquivo_dados, header, reg_atualizado);
+                    
+                    // Atualiza índice se necessário
+                    if (reg_atualizado->idAttack != registro->idAttack) {
+                        // Se idAttack mudou, remove a chave antiga e insere nova
+                        // Nota: remove_arvore_b não está implementado, então vamos apenas inserir a nova
+                        insere_arvore_b(arquivo_indice, reg_atualizado->idAttack, nova_posicao);
+                    } else {
+                        // Se idAttack não mudou, apenas atualiza o ponteiro
+                        atualiza_ponteiro_arvore_b(arquivo_indice, reg_atualizado->idAttack, nova_posicao);
+                    }
                 }
                 
                 // Libera memória do registro atualizado
@@ -400,8 +385,8 @@ bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header,
             }
         }
         
+        // Libera memória do registro original
         if (registro) {
-            // Libera memória do registro original
             if (registro->country) free(registro->country);
             if (registro->attackType) free(registro->attackType);
             if (registro->targetIndustry) free(registro->targetIndustry);
@@ -410,7 +395,6 @@ bool atualiza_com_busca_sequencial(FILE *arquivo_dados, REG_HEADER *header,
         }
     }
     
-    // Libera array de posições
     free(posicoes_match);
     
     return encontrou;

@@ -16,4 +16,4 @@ REG_DADOS* le_registro_dados(FILE *arquivo_dados, long long int offset);
 // Função para verificar se um arquivo existe e está acessível
 bool arquivo_existe(char *nome_arquivo);
 
-#endif // CRIA_INDICE_H 
+#endif
